@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from sqlmodel import select, desc
+from sqlmodel import select, desc, func
 from app.database import get_session
 from app.models import DataProduct, DataProductCreate, DataProductUpdate
 
@@ -96,6 +96,23 @@ def delete_data_product(data_product_id: Optional[int]) -> bool:
         session.delete(db_data_product)
         session.commit()
         return True
+
+
+def search_data_products_by_schema_name(search_term: str) -> list[DataProduct]:
+    """Search data products by schema name (case-insensitive)."""
+    with get_session() as session:
+        if not search_term or not search_term.strip():
+            # Return all products if search term is empty
+            statement = select(DataProduct).order_by(desc(DataProduct.creation_date))
+        else:
+            # Case-insensitive search using LIKE
+            search_pattern = f"%{search_term.strip().lower()}%"
+            statement = (
+                select(DataProduct)
+                .where(func.lower(DataProduct.schema_name).like(search_pattern))
+                .order_by(desc(DataProduct.creation_date))
+            )
+        return list(session.exec(statement).all())
 
 
 def get_data_products_count() -> int:

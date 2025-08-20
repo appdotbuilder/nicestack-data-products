@@ -7,6 +7,7 @@ from app.data_product_service import (
     update_data_product,
     delete_data_product,
     get_data_product_by_id,
+    search_data_products_by_schema_name,
 )
 from app.models import DataProductCreate, DataProductUpdate
 
@@ -62,16 +63,41 @@ def create():
                     add_btn = ui.button("Add Data Product", icon="add", on_click=lambda: show_add_dialog())
                     add_btn.classes("bg-primary text-white hover:bg-blue-600")
 
+            # Search field with modern styling
+            with ui.row().classes("w-full items-center gap-4 mb-6 p-4 bg-gray-50 rounded-lg border"):
+                ui.icon("search").classes("text-gray-400 text-xl")
+                search_input = ui.input(placeholder="Search by schema name...").classes("flex-1")
+                search_input.props("outlined dense")
+
+                # Clear search button
+                clear_btn = ui.button(icon="clear", on_click=lambda: clear_search()).props("flat round size=sm")
+                clear_btn.classes("text-gray-400 hover:text-gray-600")
+
             # Data products table
             table_container = ui.column().classes("w-full")
 
             # Stats row
             stats_container = ui.row().classes("w-full gap-4 mb-6")
 
-            def refresh_table():
-                """Refresh the data products table."""
+            def clear_search():
+                """Clear the search input and refresh table."""
+                search_input.value = ""
+                refresh_table()
+
+            def on_search_change():
+                """Handle search input changes for live filtering."""
+                refresh_table(search_input.value or "")
+
+            # Bind search input to trigger live filtering
+            search_input.on("input", lambda: on_search_change())
+
+            def refresh_table(search_term: str = ""):
+                """Refresh the data products table with optional search filtering."""
                 try:
-                    data_products = get_all_data_products()
+                    if search_term.strip():
+                        data_products = search_data_products_by_schema_name(search_term)
+                    else:
+                        data_products = get_all_data_products()
 
                     # Update stats
                     stats_container.clear()
